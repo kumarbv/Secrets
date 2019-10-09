@@ -4,7 +4,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const ejs = require('ejs')
 const mongoose = require('mongoose')
-const encrypt = require('mongoose-encryption')
+const md5 = require('md5')
 
 const app = express()
 const port = process.env.PORT || 8080
@@ -23,9 +23,6 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String
 })
-// Create secret phrase -> for encryption
-
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]})
 
 // Model
 const User = mongoose.model("User", userSchema)
@@ -43,10 +40,11 @@ app.get("/register", function(req, res) {
     res.render("register")
 })
 
+//Hashing
 app.post("/register", function(req, res) {
     const username = req.body.username;
     const password = req.body.password;
-    const newUser = User({email: username, password: password})
+    const newUser = User({email: username, password: md5(password)})
     newUser.save(function(err) {
         if (!err) {
             console.log('User Registered Successfully')
@@ -57,6 +55,7 @@ app.post("/register", function(req, res) {
     });
 })
 
+// Hashing check
 app.post("/login", function(req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -64,8 +63,8 @@ app.post("/login", function(req, res) {
         if (!err) {
             // console.log(result);
             if (result) {
-                if (result.password === password) {
-                    // console.log("User successfully logged in");
+                if (result.password === md5(password)) {
+                    console.log("User successfully logged in");
                     res.render('secrets')
                 } else {
                     console.log("Username or password is incorrect.")
