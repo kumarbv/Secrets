@@ -4,7 +4,8 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const ejs = require('ejs')
 const mongoose = require('mongoose')
-const md5 = require('md5')
+const bcrypt = require('bcrypt')
+const saltRounds = 10;
 
 const app = express()
 const port = process.env.PORT || 8080
@@ -44,14 +45,16 @@ app.get("/register", function(req, res) {
 app.post("/register", function(req, res) {
     const username = req.body.username;
     const password = req.body.password;
-    const newUser = User({email: username, password: md5(password)})
-    newUser.save(function(err) {
-        if (!err) {
-            console.log('User Registered Successfully')
-            res.render("secrets")
-        } else {
-            console.log('User couldnt be registered successfully.')
-        }
+    bcrypt.hash(password, saltRounds, function(err, hash) {
+        const newUser = User({email: username, password: hash})
+        newUser.save(function(err) {
+            if (!err) {
+                console.log('User Registered Successfully')
+                res.render("secrets")
+            } else {
+                console.log('User couldnt be registered successfully.')
+            }
+        });
     });
 })
 
@@ -63,12 +66,22 @@ app.post("/login", function(req, res) {
         if (!err) {
             // console.log(result);
             if (result) {
-                if (result.password === md5(password)) {
-                    console.log("User successfully logged in");
-                    res.render('secrets')
-                } else {
-                    console.log("Username or password is incorrect.")
-                }
+                bcrypt.compare(password, result.password, function(err, res0) {
+                    // res == true
+                    if (res0 == true) {
+                        console.log("User successfully logged in");
+                        res.render('secrets')
+                    } else {
+                        console.log("Username or password is incorrect.")
+                    }
+                });
+                // vvvv
+                // if (result.password === password) {
+                //     console.log("User successfully logged in");
+                //     res.render('secrets')
+                // } else {
+                //     console.log("Username or password is incorrect.")
+                // }
             } else {
                 console.log("Username or password is incorrect.")
             }
